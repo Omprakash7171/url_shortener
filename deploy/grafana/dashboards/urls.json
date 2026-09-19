@@ -1,0 +1,154 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "tags": ["url-shortener"],
+  "templating": { "list": [] },
+  "time": { "from": "now-15m", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "URL Shortener Observatory",
+  "uid": "url-shortener-obs",
+  "version": 1,
+  "weekStart": "",
+  "panels": [
+    {
+      "title": "Requests per second",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(rate(url_http_request_duration_seconds_count[1m]))",
+          "legendFormat": "rps"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "reqps", "color": { "mode": "palette-classic" } },
+        "overrides": []
+      }
+    },
+    {
+      "title": "Redirect latency p50 / p95 / p99",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(url_http_request_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(url_http_request_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p95"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(url_http_request_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p99"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s", "color": { "mode": "palette-classic" } }, "overrides": [] }
+    },
+    {
+      "title": "Cache hits / misses / fail-open (per minute)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "sum(rate(url_cache_hits_total[1m])) by (layer)",
+          "legendFormat": "hits {{layer}}"
+        },
+        {
+          "expr": "sum(rate(url_cache_misses_total[1m])) by (layer)",
+          "legendFormat": "misses {{layer}}"
+        },
+        {
+          "expr": "sum(rate(url_cache_fail_open_total[1m])) by (layer)",
+          "legendFormat": "fail-open {{layer}}"
+        }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } }, "overrides": [] }
+    },
+    {
+      "title": "Analytics pipeline",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "expr": "sum(rate(url_events_published_total[1m]))",
+          "legendFormat": "published"
+        },
+        {
+          "expr": "sum(rate(url_events_dropped_total[1m]))",
+          "legendFormat": "dropped (overflow)"
+        },
+        {
+          "expr": "sum(rate(url_events_failed_total[1m]))",
+          "legendFormat": "failed"
+        },
+        {
+          "expr": "sum(rate(url_analytics_processed_total[1m]))",
+          "legendFormat": "aggregated by worker"
+        },
+        {
+          "expr": "sum(rate(url_analytics_deduped_total[1m]))",
+          "legendFormat": "deduped"
+        }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } }, "overrides": [] }
+    },
+    {
+      "title": "Service up / rate-limit fail-open",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "targets": [
+        {
+          "expr": "avg(up{job=\"api\"})",
+          "legendFormat": "api up"
+        },
+        {
+          "expr": "sum(rate(url_ratelimit_fail_open_total[1m]))",
+          "legendFormat": "rate-limit fail-open/min"
+        }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } }, "overrides": [] }
+    },
+    {
+      "title": "Go runtime: goroutines & heap",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "targets": [
+        {
+          "expr": "sum(go_goroutines{job=\"api\"})",
+          "legendFormat": "goroutines"
+        },
+        {
+          "expr": "sum(go_memstats_heap_alloc_bytes{job=\"api\"})",
+          "legendFormat": "heap bytes"
+        }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } }, "overrides": [] }
+    }
+  ]
+}

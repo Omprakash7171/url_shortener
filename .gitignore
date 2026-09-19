@@ -1,0 +1,7 @@
+.env
+.data/
+bin/
+build/
+*.log
+coverage.out
+.DS_Store

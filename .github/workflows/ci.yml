@@ -1,0 +1,71 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: lint + test + build
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: urlshortener
+          POSTGRES_PASSWORD: urlshortener_dev
+          POSTGRES_DB: urlshortener_test
+        ports:
+          - 5439:5432
+        options: >-
+          --health-cmd "pg_isready -U urlshortener -d urlshortener_test"
+          --health-interval 5s --health-timeout 3s --health-retries 12
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6389:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgres://urlshortener:urlshortener_dev@localhost:5439/urlshortener_test
+      TEST_REDIS_ADDR: localhost:6389
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.27'
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: tests (unit + integration)
+        run: go test ./... -count=1
+
+      - name: build binaries
+        run: |
+          CGO_ENABLED=0 go build -trimpath -o /tmp/server ./cmd/server
+          CGO_ENABLED=0 go build -trimpath -o /tmp/worker ./cmd/worker
+
+      - name: govulncheck
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+        continue-on-error: true
+
+  docker:
+    name: docker image build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: build api + worker images
+        run: docker build -t url-shortener-api:${{ github.sha }} .
+
+      - name: trivy image scan (HIGH/CRITICAL)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: url-shortener-api:${{ github.sha }}
+          format: table
+          exit-code: '1'
+          severity: HIGH,CRITICAL

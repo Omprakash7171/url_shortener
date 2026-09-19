@@ -1,0 +1,14 @@
+.git
+.env
+bin/
+build/
+.data/
+*.log
+*.out
+docs/
+scripts/
+.gitignore
+.gitkeep
+docker-compose.yml
+docker-compose.override.yml
+README.md
